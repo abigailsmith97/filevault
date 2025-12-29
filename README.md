@@ -48,8 +48,8 @@ This screen shows the light mode when you slide the toggle switch.
 ## Prerequisites
 
 - Node.js
-- AWS or Azure account with appropriate storage setup
-- AWS S3 bucket or Azure Storage Account and Container
+- Azure account with appropriate storage setup
+- Azure Storage Account and Container
 - Appropriate credentials for AWS or Azure
 
 ## Getting Started
