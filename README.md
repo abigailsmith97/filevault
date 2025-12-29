@@ -151,7 +151,7 @@ Open your browser and navigate to `http://localhost:3000`.
 ## Technologies Used
 
 - Node.js
-- AWS S3 or Azure Storage Accounts
+- Azure Storage Accounts
 - HTML, CSS, JavaScript
 
 ## To-Do
