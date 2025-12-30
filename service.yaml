@@ -9,4 +9,4 @@ spec:
   ports:
     - protocol: TCP
       port: 80             
-      targetPort: process.env.PORT     
+      targetPort: 3000   
