@@ -50,7 +50,7 @@ This screen shows the light mode when you slide the toggle switch.
 - Node.js
 - Azure account with appropriate storage setup
 - Azure Storage Account and Container
-- Appropriate credentials for AWS or Azure
+- Appropriate credentials Azure
 
 ## Getting Started
 
@@ -71,20 +71,18 @@ filevault/
 │   │   │   ├── app.js
 │   │   │   ├── index.html
 │   │   │   └── styles.css
-│   │   ├── uploads/
-│   │   ├── filesData.json
 │   │   ├── .env.example
 │   │   ├── index.js
 │   │   ├── package.json
 │   │   └── package-lock.json
-│   ├── azure-blob/
+│   ├── azure-sa/
 │   │   ├── public/
 │   │   │   ├── app.js
 │   │   │   ├── index.html
 │   │   │   └── styles.css
-│   │   ├── uploads/
-│   │   ├── filesData.json
 │   │   ├── .env.example
+│   │   ├── Dockerfile
+│   │   ├── docker-compose.yml
 │   │   ├── index.js
 │   │   ├── package.json
 │   │   └── package-lock.json
@@ -96,6 +94,10 @@ filevault/
 │   ├── file-removed-from-azure-sa.png
 |   ├── toggle.png
 ├── .gitignore
+├── main.tf
+├── service.yaml
+├── deployment.yaml
+├── test-and-destroy.sh
 └── README.md
 ```
 
@@ -103,7 +105,7 @@ filevault/
 
 ### Configuration
 
-Navigate to the `src/azure-blob` directory and create a `.env` file based on the `.env.example`:
+Navigate to the `src/azure-sa` directory and create a `.env` file based on the `.env.example`:
 
 ```
 AZURE_STORAGE_ACCOUNT_NAME=your-storage-account-name
@@ -115,8 +117,8 @@ PORT=3000
 ### Install Dependencies
 
 ```
-cd src/azure-blob
-npm install express multer dotenv @azure/storage-blob
+cd src/azure-sa
+npm install
 ```
 
 ## Running and Accessing the Application
@@ -127,10 +129,97 @@ node index.js
 
 Open your browser and navigate to `http://localhost:3000`.
 
+## Docker
+
+### Build the Docker Image
+
+To build the Docker image for the application, run the following command from the `src/azure-sa` directory:
+
+```bash
+docker build -t filevault-azure .
+```
+
+### Run the Docker Container
+
+To run the application as a Docker container, use the following command:
+
+```bash
+docker run -p 3000:3000 -d --env-file .env filevault-azure
+```
+
+## Terraform
+
+### Provision the Infrastructure
+
+The Terraform configuration in this project will provision the following Azure resources:
+
+-   **Azure Kubernetes Service (AKS) Cluster:** A managed Kubernetes cluster to deploy the application.
+-   **Azure Container Registry (ACR):** A private Docker registry to store the application's Docker image.
+
+Before running the Terraform commands, make sure you have the Azure CLI installed and configured.
+
+1.  **Initialize Terraform:**
+
+    ```bash
+    terraform init
+    ```
+
+2.  **Plan the deployment:**
+
+    ```bash
+    terraform plan
+    ```
+
+3.  **Apply the configuration:**
+
+    ```bash
+    terraform apply
+    ```
+
+## Kubernetes
+
+### Deploy the Application
+
+Once the infrastructure is provisioned with Terraform, you can deploy the application to the AKS cluster.
+
+1.  **Connect to the AKS cluster:**
+
+    Use the Azure CLI to get the credentials for your AKS cluster.
+
+    ```bash
+    az aks get-credentials --resource-group <resource-group-name> --name <aks-cluster-name>
+    ```
+
+2.  **Deploy the application:**
+
+    Apply the `deployment.yaml` and `service.yaml` files to deploy the application and expose it to the internet.
+
+    ```bash
+    kubectl apply -f deployment.yaml
+    kubectl apply -f service.yaml
+    ```
+
+3.  **Access the application:**
+
+    It may take a few minutes for the LoadBalancer to be provisioned. You can get the external IP address of the service by running:
+
+    ```bash
+    kubectl get service firevault-service
+    ```
+
+    Once the `EXTERNAL-IP` is available, you can access the application in your browser at `http://<external-ip>`.
+
+## Setup on AWS S3
+
+(Instructions for setting up and running the AWS S3 version of the application will be added here.)
+
 ## Technologies Used
 
 - Node.js
 - Azure Storage Accounts
+- Docker
+- Terraform
+- Kubernetes
 - HTML, CSS, JavaScript
 
 ## To-Do

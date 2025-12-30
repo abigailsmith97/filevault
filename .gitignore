@@ -29,3 +29,11 @@ Thumbs.db
 
 # Uploads
 **/uploads/
+
+# Terraform
+.terraform/
+
+.terraform.tfstate.lock.info
+tfplan
+terraform.tfstate
+terraform.tfstate.backup

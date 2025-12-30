@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firevault-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: firevault-app
+  template:
+    metadata:
+      labels:
+        app: firevault-app
+    spec:
+      containers:
+        - name: firevault-container
+          image: firevaultregistry.azurecr.io/firevault-app:latest
+
+          ports:
+            - containerPort: 3000
+
+          env:
+            - name: AZURE_STORAGE_ACCOUNT_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: firevault-config
+                  key: AZURE_STORAGE_ACCOUNT_NAME
+            - name: AZURE_STORAGE_ACCOUNT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: firevault-secret
+                  key: AZURE_STORAGE_ACCOUNT_KEY
+            - name: AZURE_CONTAINER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: firevault-config
+                  key: AZURE_CONTAINER_NAME
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: firevault-config
+                  key: PORT
