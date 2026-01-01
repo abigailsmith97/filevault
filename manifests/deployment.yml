@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: abigailsmithfilevault 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: abigailsmithfilevault
+  template:
+    metadata:
+      labels:
+        app: abigailsmithfilevault 
+    spec:
+      containers:
+        - name: abigailsmithfilevault 
+          image: firevaultregistry.azurecr.io/abigailsmithfilevault
+          ports:
+          - containerPort: 3000
