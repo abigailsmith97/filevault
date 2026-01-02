@@ -26,35 +26,29 @@ jobs:
         with:
           node-version: '18'
 
-      # Install dependencies inside your source folder
       - name: Install Dependencies
         working-directory: ${{ env.SOURCE_ROOT }}
         run: npm ci
 
-      # Run Linting (ESLint)
       - name: Run Linting
         working-directory: ${{ env.SOURCE_ROOT }}
-        # This runs the 'lint' script defined in your package.json
         run: npm run lint
-        continue-on-error: false # Fail pipeline if linting has errors
+        continue-on-error: false
 
-      # Run Unit Tests (Mocha/Jest)
       - name: Run Unit Tests
         working-directory: ${{ env.SOURCE_ROOT }}
-        # This runs the 'test' script defined in your package.json
         run: npm test
 
-      # SonarQube Analysis
-      # Note: This uses the official SonarQube Action. 
-      # If using SonarCloud, use 'SonarSource/sonarcloud-github-action@master' instead.
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
+      # FIX: Switched to the specific SonarCloud Action
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           # Arguments to tell Sonar where the code is
           args: >
+            -Dsonar.organization=abigailsmith97
             -Dsonar.projectKey=firevault-app
             -Dsonar.sources=${{ env.SOURCE_ROOT }}
             -Dsonar.tests=${{ env.SOURCE_ROOT }}/test
