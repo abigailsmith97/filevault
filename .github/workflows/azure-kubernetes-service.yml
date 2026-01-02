@@ -49,7 +49,7 @@ jobs:
           # Arguments to tell Sonar where the code is
           args: >
             -Dsonar.organization=abigailsmith97
-            -Dsonar.projectKey=firevault-app
+            -Dsonar.projectKey=firevault
             -Dsonar.sources=${{ env.SOURCE_ROOT }}
             -Dsonar.tests=${{ env.SOURCE_ROOT }}/test
             -Dsonar.exclusions=**/node_modules/**,**/*.spec.js
