@@ -1,3 +1,6 @@
+process.env.AZURE_STORAGE_ACCOUNT_NAME = 'dummyaccount';
+process.env.AZURE_STORAGE_ACCOUNT_KEY = 'dummykey';
+
 const request = require('supertest');
 const app = require('../index');
 
