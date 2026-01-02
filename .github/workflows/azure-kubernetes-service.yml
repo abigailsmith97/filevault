@@ -1,33 +1,4 @@
-# This workflow will build and push an application to a Azure Kubernetes Service (AKS) cluster when you push your code
-#
-# This workflow assumes you have already created the target AKS cluster and have created an Azure Container Registry (ACR)
-# The ACR should be attached to the AKS cluster
-# For instructions see:
-#   - https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough-portal
-#   - https://docs.microsoft.com/en-us/azure/container-registry/container-registry-get-started-portal
-#   - https://learn.microsoft.com/en-us/azure/aks/cluster-container-registry-integration?tabs=azure-cli#configure-acr-integration-for-existing-aks-clusters
-#   - https://github.com/Azure/aks-create-action
-#
-# To configure this workflow:
-#
-# 1. Set the following secrets in your repository (instructions for getting these can be found at https://docs.microsoft.com/en-us/azure/developer/github/connect-from-azure?tabs=azure-cli%2Clinux):
-#    - AZURE_CLIENT_ID
-#    - AZURE_TENANT_ID
-#    - AZURE_SUBSCRIPTION_ID
-#
-# 2. Set the following environment variables (or replace the values below):
-#    - AZURE_CONTAINER_REGISTRY (name of your container registry / ACR)
-#    - RESOURCE_GROUP (where your cluster is deployed)
-#    - CLUSTER_NAME (name of your AKS cluster)
-#    - CONTAINER_NAME (name of the container image you would like to push up to your ACR)
-#    - IMAGE_PULL_SECRET_NAME (name of the ImagePullSecret that will be created to pull your ACR image)
-#    - DEPLOYMENT_MANIFEST_PATH (path to the manifest yaml for your deployment)
-#
-# For more information on GitHub Actions for Azure, refer to https://github.com/Azure/Actions
-# For more samples to get started with GitHub Action workflows to deploy to Azure, refer to https://github.com/Azure/actions-workflow-samples
-# For more options with the actions used below please refer to https://github.com/Azure/login
-
-name: Build and deploy an app to AKS
+name: Build, Test, and Deploy to AKS
 
 on:
   push:
@@ -39,10 +10,59 @@ env:
   CONTAINER_NAME: "firevault-app"
   RESOURCE_GROUP: "aks-resource-group"
   CLUSTER_NAME: "firevault-cluster"
-  DEPLOYMENT_MANIFEST_PATH: "deployment.yaml"
+  SOURCE_ROOT: "src/azure-sa"
 
 jobs:
+  # JOB 1: LINTING, TESTING, AND SONARQUBE
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for SonarQube to report correctly
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # Install dependencies inside your source folder
+      - name: Install Dependencies
+        working-directory: ${{ env.SOURCE_ROOT }}
+        run: npm ci
+
+      # Run Linting (ESLint)
+      - name: Run Linting
+        working-directory: ${{ env.SOURCE_ROOT }}
+        # This runs the 'lint' script defined in your package.json
+        run: npm run lint
+        continue-on-error: false # Fail pipeline if linting has errors
+
+      # Run Unit Tests (Mocha/Jest)
+      - name: Run Unit Tests
+        working-directory: ${{ env.SOURCE_ROOT }}
+        # This runs the 'test' script defined in your package.json
+        run: npm test
+
+      # SonarQube Analysis
+      # Note: This uses the official SonarQube Action. 
+      # If using SonarCloud, use 'SonarSource/sonarcloud-github-action@master' instead.
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          # Arguments to tell Sonar where the code is
+          args: >
+            -Dsonar.projectKey=firevault-app
+            -Dsonar.sources=${{ env.SOURCE_ROOT }}
+            -Dsonar.tests=${{ env.SOURCE_ROOT }}/test
+            -Dsonar.exclusions=**/node_modules/**,**/*.spec.js
+
+  # JOB 2: BUILD DOCKER IMAGE (Only runs if quality-check passes)
   buildImage:
+    needs: [quality-check]
     permissions:
       contents: read
       id-token: write
@@ -50,7 +70,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Log in to Azure Container Registry so Docker can push to it
       - name: Azure login
         uses: azure/login@v1.4.6
         with:
@@ -61,16 +80,15 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      # Use standard Docker commands to build using the GitHub Runner's CPU
       - name: Build and Push to ACR
         uses: docker/build-push-action@v5
         with:
-          # FIX: Change context to the subfolder so Docker finds package.json
-          context: src/azure-sa
-          file: src/azure-sa/Dockerfile
+          context: ${{ env.SOURCE_ROOT }}
+          file: ${{ env.SOURCE_ROOT }}/Dockerfile
           push: true
           tags: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
 
+  # JOB 3: DEPLOY TO AKS (Only runs if buildImage passes)
   deploy:
     permissions:
       actions: read
@@ -79,10 +97,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [buildImage]
     steps:
-      # Checks out the repository this file is in
       - uses: actions/checkout@v4
 
-      # Logs in with your Azure credentials
       - name: Azure login
         uses: azure/login@v1.4.6
         with:
@@ -90,13 +106,11 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Use kubelogin to configure your kubeconfig for Azure auth
-      - name: Set up kubelogin for non-interactive login
+      - name: Set up kubelogin
         uses: azure/use-kubelogin@v1
         with:
           kubelogin-version: 'v0.0.25'
 
-      # Retrieves your Azure Kubernetes Service cluster's kubeconfig file
       - name: Get K8s context
         uses: azure/aks-set-context@v3
         with:
@@ -105,13 +119,12 @@ jobs:
           admin: 'false'
           use-kubelogin: 'true'
 
-      # Deploys application based on given manifest file
       - name: Deploys application
         uses: Azure/k8s-deploy@v4
         with:
           action: deploy
           manifests: |
-            secretprovider.yaml
-            deployment.yaml
+            ${{ env.SOURCE_ROOT }}/secret-provider.yaml
+            ${{ env.SOURCE_ROOT }}/deployment.yaml
           images: |
             ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
