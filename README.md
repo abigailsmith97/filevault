@@ -129,6 +129,36 @@ node index.js
 
 Open your browser and navigate to `http://localhost:3000`.
 
+## Testing
+
+The project uses `Mocha` as the test runner, `Supertest` for making HTTP requests to the Express application, and `Chai` for assertions.
+
+To run the tests, navigate to the `src/azure-sa` directory and execute:
+
+```bash
+./node_modules/.bin/mocha
+```
+
+A basic test for the `/files` endpoint looks like this:
+
+```javascript
+const request = require('supertest');
+const { expect } = require('chai');
+const app = require('../index');
+
+describe('GET /files', function() {
+  it('should return a list of files', function(done) {
+    request(app)
+      .get('/files')
+      .end((err, res) => {
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.be.an('array');
+        done();
+      });
+  });
+});
+```
+
 ## Docker
 
 ### Build the Docker Image

@@ -58,8 +58,10 @@ async function loadFiles() {
         row.innerHTML = `
             <td>${file.name}</td>
             <td>${file.key}</td>
-            <td><button onclick="deleteFile('${file.key}')">Delete</button></td>
+            <td><button class="delete-button" data-file-key="${file.key}">Delete</button></td>
         `;
+        const deleteButton = row.querySelector('.delete-button');
+        deleteButton.addEventListener('click', () => deleteFile(file.key));
         table.querySelector('tbody').appendChild(row);
     });
 
