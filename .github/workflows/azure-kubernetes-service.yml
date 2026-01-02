@@ -35,11 +35,11 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_CONTAINER_REGISTRY: "your-azure-container-registry"
-  CONTAINER_NAME: "your-container-name"
-  RESOURCE_GROUP: "your-resource-group"
-  CLUSTER_NAME: "your-cluster-name"
-  DEPLOYMENT_MANIFEST_PATH: "your-deployment-manifest-path"
+  AZURE_CONTAINER_REGISTRY: "firevaultregistry"
+  CONTAINER_NAME: "firevault-app"
+  RESOURCE_GROUP: "aks-resource-group"
+  CLUSTER_NAME: "firevault-cluster"
+  DEPLOYMENT_MANIFEST_PATH: "../../deployment.yaml"
 
 jobs:
   buildImage:
