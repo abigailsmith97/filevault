@@ -48,10 +48,9 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-      # Checks out the repository this file is in
       - uses: actions/checkout@v4
 
-      # Logs in with your Azure credentials
+      # Log in to Azure Container Registry so Docker can push to it
       - name: Azure login
         uses: azure/login@v1.4.6
         with:
@@ -59,14 +58,17 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      # Builds and pushes an image up to your Azure Container Registry
-      - name: Build and push image to ACR
-        run: |
-          az acr build \
-            --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} \
-            --registry ${{ env.AZURE_CONTAINER_REGISTRY }} \
-            --file src/azure-sa/Dockerfile \
-            .
+      - name: Log in to ACR
+        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
+
+      # Use standard Docker commands to build using the GitHub Runner's CPU
+      - name: Build and Push to ACR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: src/azure-sa/Dockerfile
+          push: true
+          tags: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
   deploy:
     permissions:
       actions: read
