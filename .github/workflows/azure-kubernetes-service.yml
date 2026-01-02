@@ -39,21 +39,20 @@ jobs:
         working-directory: ${{ env.SOURCE_ROOT }}
         run: npm test
 
-      # FIX: Switched to the specific SonarCloud Action
+      # SONARCLOUD SCAN
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Built-in GitHub secret
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}    # Your SonarCloud token
         with:
-          # Arguments to tell Sonar where the code is
           args: >
             -Dsonar.organization=abigailsmith97
-            -Dsonar.projectKey=firevault
+            -Dsonar.projectKey=abigailsmith97_filevault
             -Dsonar.sources=${{ env.SOURCE_ROOT }}
             -Dsonar.tests=${{ env.SOURCE_ROOT }}/test
             -Dsonar.exclusions=**/node_modules/**,**/*.spec.js
-
+            
   # JOB 2: BUILD DOCKER IMAGE (Only runs if quality-check passes)
   buildImage:
     needs: [quality-check]
