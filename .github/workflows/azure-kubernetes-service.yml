@@ -65,10 +65,12 @@ jobs:
       - name: Build and Push to ACR
         uses: docker/build-push-action@v5
         with:
-          context: .
+          # FIX: Change context to the subfolder so Docker finds package.json
+          context: src/azure-sa
           file: src/azure-sa/Dockerfile
           push: true
           tags: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+
   deploy:
     permissions:
       actions: read
