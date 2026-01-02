@@ -39,7 +39,7 @@ env:
   CONTAINER_NAME: "firevault-app"
   RESOURCE_GROUP: "aks-resource-group"
   CLUSTER_NAME: "firevault-cluster"
-  DEPLOYMENT_MANIFEST_PATH: "../../deployment.yaml"
+  DEPLOYMENT_MANIFEST_PATH: "deployment.yaml"
 
 jobs:
   buildImage:
@@ -103,6 +103,8 @@ jobs:
         uses: Azure/k8s-deploy@v4
         with:
           action: deploy
-          manifests: ${{ env.DEPLOYMENT_MANIFEST_PATH }}
+          manifests: |
+            secret-provider.yaml
+            deployment.yaml
           images: |
             ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
