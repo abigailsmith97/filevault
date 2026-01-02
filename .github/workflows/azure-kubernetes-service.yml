@@ -51,8 +51,8 @@ jobs:
             -Dsonar.projectKey=abigailsmith97_filevault
             -Dsonar.sources=${{ env.SOURCE_ROOT }}
             -Dsonar.tests=${{ env.SOURCE_ROOT }}/test
-            -Dsonar.exclusions=**/node_modules/**,**/*.spec.js
-            
+            -Dsonar.exclusions=**/node_modules/**,**/*.spec.js,**/test/**
+
   # JOB 2: BUILD DOCKER IMAGE (Only runs if quality-check passes)
   buildImage:
     needs: [quality-check]
