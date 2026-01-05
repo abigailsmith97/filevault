@@ -48,7 +48,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   identity {
-    type = "SystemAssigned"
+    type         = "SystemAssigned, UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.app_identity.id]
+  }
+
+  key_vault_secrets_provider {
+    secret_rotation_enabled = true
   }
 }
 
@@ -72,4 +77,14 @@ resource "azurerm_role_assignment" "app_kv_access" {
 
 output "get_credentials_command" {
   value = "az aks get-credentials --resource-group ${azurerm_resource_group.aks_rg.name} --name ${azurerm_kubernetes_cluster.aks.name}"
+}
+
+resource "azurerm_role_assignment" "github_actions_aks_user" {
+  scope                = azurerm_kubernetes_cluster.aks.id
+  role_definition_name = "Azure Kubernetes Service Cluster User Role"
+  principal_id         = "44476512-9f20-47ce-b3e2-e2afbf378092"
+}
+
+output "app_identity_client_id" {
+  value = azurerm_user_assigned_identity.app_identity.client_id
 }
