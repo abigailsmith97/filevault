@@ -4,7 +4,6 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = true 
     }
   }
-  # This line fixes the "subscription ID could not be determined" error
   subscription_id = "48740eb3-ae90-47df-9a7b-b7833ad9314e"
 }
 
@@ -16,7 +15,7 @@ resource "azurerm_resource_group" "data_rg" {
   location = "westeurope"
 }
 
-# 2. Container Registry (Keep your images safe)
+# 2. Container Registry
 resource "azurerm_container_registry" "acr" {
   name                = "firevaultregistry"
   resource_group_name = azurerm_resource_group.data_rg.name
@@ -25,7 +24,7 @@ resource "azurerm_container_registry" "acr" {
   admin_enabled       = true
 }
 
-# 3. Key Vault (The new addition!)
+# 3. Key Vault
 resource "azurerm_key_vault" "vault" {
   name                        = "firevault-secrets"
   location                    = azurerm_resource_group.data_rg.location
@@ -46,7 +45,7 @@ resource "azurerm_key_vault" "vault" {
   }
 }
 
-# 4. The Existing Storage Account (Adopting the stranger)
+# 4. The Existing Storage Account
 resource "azurerm_storage_account" "store" {
   name                     = "firevaultstore"
   resource_group_name      = azurerm_resource_group.data_rg.name
