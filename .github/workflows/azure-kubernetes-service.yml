@@ -1,4 +1,17 @@
-# JOB 3: DEPLOY TO AKS
+name: Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  buildImage:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This is a placeholder for the buildImage job."
+
+  # JOB 3: DEPLOY TO AKS
   deploy:
     permissions:
       actions: read
