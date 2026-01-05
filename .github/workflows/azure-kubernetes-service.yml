@@ -98,6 +98,9 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          
+      - name: Log in to ACR
+        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
       - name: Set up kubelogin
         uses: azure/use-kubelogin@v1
