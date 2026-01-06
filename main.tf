@@ -141,3 +141,10 @@ output "get_credentials_command" {
 output "app_identity_client_id" {
   value = azurerm_user_assigned_identity.app_identity.client_id
 }
+
+data "kubernetes_secret_v1" "firevault_k8s_secret" {
+  metadata {
+    name      = "firevault-k8s-secret"
+    namespace = var.namespace
+  }
+}

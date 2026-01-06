@@ -11,14 +11,13 @@ on:
       - "!**.md"
 
 permissions:
-  id-token: write # Required for OIDC
-  contents: read  # Required for Checkout
+  id-token: write
+  contents: read
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
     env:
-      # These 4 env vars are all the Azurerm provider needs for OIDC
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -42,7 +41,6 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        # -input=false ensures the pipeline fails with an error instead of hanging
         run: terraform plan -input=false
 
       - name: Terraform Apply
