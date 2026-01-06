@@ -5,37 +5,26 @@ FileVault is a modern file uploading application with versions for both AWS S3 a
 ## Application Screenshots
 
 ### FileVault Interface
-
 ![FileVault](images/filevault.png)
 
 ### Upload File to Azure Storage Account
-
 ![Upload File to Azure Storage Account](images/upload-file-to-azure-storage-account.png)
-
 The upload screen allows you to select a file and enter a name for the file. Upon clicking the submit button, the file is uploaded to the Azure Blob Storage.
 
 ### File Appears in Azure Storage Account
-
 ![File Appears in Azure SA](images/file-appears-in-azure-sa.png)
-
 This screen shows the file successfully uploaded to the Azure Blob Storage container. The table displays the file name and its corresponding key.
 
 ### Delete File
-
 ![Delete File](images/delete-file.png)
-
 This screen demonstrates the delete functionality. Clicking the delete button removes the file from the cloud storage and updates the table accordingly.
 
 ### File Removed from Azure Storage Account
-
 ![File Removed from Azure SA](images/file-removed-from-azure-sa.png)
-
 This screen shows that the file has been successfully deleted from the Azure Blob Storage container, and the table has been updated to reflect this.
 
 ### Toggle Light/Dark Mode
-
 ![Toggle Light/Dark Mode](images/toggle.png)
-
 This screen shows the light mode when you slide the toggle switch.
 
 ## Features
@@ -45,220 +34,66 @@ This screen shows the light mode when you slide the toggle switch.
 - Delete files directly from the table.
 - Light/Dark mode toggle.
 
+## Project Structure
+The project is organized into several directories:
+- **.github/workflows**: Contains GitHub Actions workflows for CI/CD.
+- **ansible-deployment**: Includes Ansible playbooks for application deployment.
+- **images**: Stores application screenshots and diagrams.
+- **infrastructure-aks**: Holds Terraform configurations for the Azure Kubernetes Service (AKS) infrastructure.
+- **infrastructure-data**: Contains Terraform configurations for data-related resources like storage accounts.
+- **src**: The source code for the Node.js application, with separate implementations for AWS S3 and Azure Storage Account.
+
 ## Prerequisites
 
 - Node.js
-- Azure account with appropriate storage setup
-- Azure Storage Account and Container
-- Appropriate credentials Azure
+- Docker
+- Terraform
+- Azure CLI
+- Helm
 
 ## Getting Started
 
 ### Clone the Repository
-
 ```bash
 git clone https://github.com/yourusername/filevault.git
 cd filevault
 ```
 
-## Project Structure
+## Infrastructure Setup with Terraform
+The project uses Terraform to provision the necessary Azure infrastructure. The main Terraform files are:
+- **main.tf**: Defines the core resources, including the AKS cluster, Container Registry, and Key Vault.
+- **grafana-k8s-monitoring.tf**: Configures Grafana for Kubernetes monitoring.
+- **secrets.tf**: Manages secrets using Azure Key Vault.
+- **vars.tf**: Contains variable definitions for the Terraform configurations.
 
-```
-filevault/
-├── src/
-│   ├── aws-s3/
-│   │   ├── public/
-│   │   │   ├── app.js
-│   │   │   ├── index.html
-│   │   │   └── styles.css
-│   │   ├── .env.example
-│   │   ├── index.js
-│   │   ├── package.json
-│   │   └── package-lock.json
-│   ├── azure-sa/
-│   │   ├── public/
-│   │   │   ├── app.js
-│   │   │   ├── index.html
-│   │   │   └── styles.css
-│   │   ├── .env.example
-│   │   ├── Dockerfile
-│   │   ├── docker-compose.yml
-│   │   ├── index.js
-│   │   ├── package.json
-│   │   └── package-lock.json
-├── images/
-│   ├── filevault.png
-│   ├── upload-file-to-azure-storage-account.png
-│   ├── file-appears-in-azure-sa.png
-│   ├── delete-file.png
-│   ├── file-removed-from-azure-sa.png
-|   ├── toggle.png
-├── .gitignore
-├── main.tf
-├── service.yaml
-├── deployment.yaml
-├── test-and-destroy.sh
-└── README.md
-```
-
-## Setup on Azure Storage Accounts
-
-### Configuration
-
-Navigate to the `src/azure-sa` directory and create a `.env` file based on the `.env.example`:
-
-```
-AZURE_STORAGE_ACCOUNT_NAME=your-storage-account-name
-AZURE_STORAGE_ACCOUNT_KEY=your-storage-account-key
-AZURE_CONTAINER_NAME=your-container-name
-PORT=3000
-```
-
-### Install Dependencies
-
-```
-cd src/azure-sa
-npm install
-```
-
-## Running and Accessing the Application
-
-```
-node index.js
-```
-
-Open your browser and navigate to `http://localhost:3000`.
-
-## Testing
-
-The project uses `Mocha` as the test runner, `Supertest` for making HTTP requests to the Express application, and `Chai` for assertions.
-
-To run the tests, navigate to the `src/azure-sa` directory and execute:
-
+To provision the infrastructure, navigate to the `infrastructure-aks` directory and run the following commands:
 ```bash
-./node_modules/.bin/mocha
+terraform init
+terraform plan
+terraform apply
 ```
 
-A basic test for the `/files` endpoint looks like this:
+## Application Deployment with Helm
+The application is deployed to the AKS cluster using a Helm chart. The chart is defined by the following files:
+- **values.yaml**: Contains the default values for the Helm chart.
+- **deployment.yaml**: Defines the Kubernetes deployment for the application.
+- **service.yaml**: Defines the Kubernetes service to expose the application.
+- **secretprovider.yaml**: Manages secrets for the application using the Azure Key Vault provider.
 
-```javascript
-const request = require('supertest');
-const { expect } = require('chai');
-const app = require('../index');
-
-describe('GET /files', function() {
-  it('should return a list of files', function(done) {
-    request(app)
-      .get('/files')
-      .end((err, res) => {
-        expect(res.statusCode).to.equal(200);
-        expect(res.body).to.be.an('array');
-        done();
-      });
-  });
-});
-```
-
-## Docker
-
-### Build the Docker Image
-
-To build the Docker image for the application, run the following command from the `src/azure-sa` directory:
-
+To deploy the application, use the following Helm command:
 ```bash
-docker build -t filevault-azure .
+helm install filevault . -f values.yaml
 ```
 
-### Run the Docker Container
-
-To run the application as a Docker container, use the following command:
-
-```bash
-docker run -p 3000:3000 -d --env-file .env filevault-azure
-```
-
-## Terraform
-
-### Provision the Infrastructure
-
-The Terraform configuration in this project will provision the following Azure resources:
-
--   **Azure Kubernetes Service (AKS) Cluster:** A managed Kubernetes cluster to deploy the application.
--   **Azure Container Registry (ACR):** A private Docker registry to store the application's Docker image.
-
-Before running the Terraform commands, make sure you have the Azure CLI installed and configured.
-
-1.  **Initialize Terraform:**
-
-    ```bash
-    terraform init
-    ```
-
-2.  **Plan the deployment:**
-
-    ```bash
-    terraform plan
-    ```
-
-3.  **Apply the configuration:**
-
-    ```bash
-    terraform apply
-    ```
-
-## Kubernetes
-
-### Deploy the Application
-
-Once the infrastructure is provisioned with Terraform, you can deploy the application to the AKS cluster.
-
-1.  **Connect to the AKS cluster:**
-
-    Use the Azure CLI to get the credentials for your AKS cluster.
-
-    ```bash
-    az aks get-credentials --resource-group <resource-group-name> --name <aks-cluster-name>
-    ```
-
-2.  **Deploy the application:**
-
-    Apply the `deployment.yaml` and `service.yaml` files to deploy the application and expose it to the internet.
-
-    ```bash
-    kubectl apply -f deployment.yaml
-    kubectl apply -f service.yaml
-    ```
-
-3.  **Access the application:**
-
-    It may take a few minutes for the LoadBalancer to be provisioned. You can get the external IP address of the service by running:
-
-    ```bash
-    kubectl get service firevault-service
-    ```
-
-    Once the `EXTERNAL-IP` is available, you can access the application in your browser at `http://<external-ip>`.
-
-## Setup on AWS S3
-
-(Instructions for setting up and running the AWS S3 version of the application will be added here.)
-
-## Technologies Used
-
-- Node.js
-- Azure Storage Accounts
-- Docker
-- Terraform
-- Kubernetes
-- HTML, CSS, JavaScript
+## CI/CD Pipeline
+The project includes a CI/CD pipeline using GitHub Actions. The workflows are defined in the `.github/workflows` directory:
+- **terraform.yml**: Automates the provisioning of the Terraform infrastructure.
+- **azure-kubernetes-service.yml**: Automates the deployment of the application to the AKS cluster.
 
 ## To-Do
-
 - [ ] **Use a Database for Persistent Data**: Replace the `filesData.json` with a database (e.g., MongoDB, PostgreSQL) to store file metadata persistently.
-
 - [ ] **User Authentication**: Implement user authentication to manage user-specific files securely.
-
 - [ ] **File Search and Filtering**: Add functionality to search and filter files in the table.
-
 - [ ] **Drag and Drop Upload**: Enhance the upload feature with drag and drop functionality.
-
+- [ ] **Complete AWS S3 Implementation**: Finish the implementation of the AWS S3 version of the application.
+- [ ] **Improve Test Coverage**: Increase the test coverage for both the application and the infrastructure.
