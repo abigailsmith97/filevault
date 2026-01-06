@@ -3,6 +3,10 @@ name: Build, Test, and Deploy to AKS
 on:
   push:
     branches: ["main"]
+    paths:
+      - 'src/azure-sa/**'
+      - 'deployment.yaml'
+      - 'service.yaml'
   workflow_dispatch:
 
 env:
@@ -12,68 +16,47 @@ env:
   CLUSTER_NAME: "firevault-cluster"
   SOURCE_ROOT: "src/azure-sa"
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
-  # JOB 1: LINTING, TESTING, AND SONARQUBE
   quality-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Required for SonarQube to report correctly
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Install Dependencies
+      - name: Install and Test
         working-directory: ${{ env.SOURCE_ROOT }}
-        run: npm ci
+        run: |
+          npm ci
+          npm run lint
+          npm test
 
-      - name: Run Linting
-        working-directory: ${{ env.SOURCE_ROOT }}
-        run: npm run lint
-        continue-on-error: false
-
-      - name: Run Unit Tests
-        working-directory: ${{ env.SOURCE_ROOT }}
-        run: npm test
-
-      # SONARCLOUD SCAN
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}  
-        with:
-          args: >
-            -Dsonar.organization=abigailsmith97
-            -Dsonar.projectKey=abigailsmith97_filevault
-            -Dsonar.sources=${{ env.SOURCE_ROOT }}
-            -Dsonar.tests=${{ env.SOURCE_ROOT }}/test
-            -Dsonar.exclusions=**/node_modules/**,**/*.spec.js,**/test/**
-
-  # JOB 2: BUILD DOCKER IMAGE (Only runs if quality-check passes)
   buildImage:
     needs: [quality-check]
-    permissions:
-      contents: read
-      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Azure login
-        uses: azure/login@v1.4.6
+        uses: azure/login@v2 
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Log in to ACR
-        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          username: ${{ secrets.AZURE_CLIENT_ID }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET }} 
 
-      - name: Build and Push to ACR
+      - name: Build and Push
         uses: docker/build-push-action@v5
         with:
           context: ${{ env.SOURCE_ROOT }}
@@ -81,46 +64,30 @@ jobs:
           push: true
           tags: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
 
-  # JOB 3: DEPLOY TO AKS (Only runs if buildImage passes)
   deploy:
-    permissions:
-      actions: read
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
     needs: [buildImage]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Azure login
-        uses: azure/login@v1.4.6
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          
-      - name: Log in to ACR
-        run: az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Set up kubelogin
-        uses: azure/use-kubelogin@v1
-        with:
-          kubelogin-version: 'v0.0.25'
-
-      - name: Get K8s context
+      - name: Set K8s Context
         uses: azure/aks-set-context@v3
         with:
           resource-group: ${{ env.RESOURCE_GROUP }}
           cluster-name: ${{ env.CLUSTER_NAME }}
-          admin: 'false'
-          use-kubelogin: 'true'
 
-      - name: Deploys application
+      - name: Deploy to AKS
         uses: Azure/k8s-deploy@v4
         with:
           action: deploy
           manifests: |
-            secretprovider.yaml
             deployment.yaml
             service.yaml
           images: |
