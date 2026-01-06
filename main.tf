@@ -1,3 +1,22 @@
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 3.100.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.30.0"
+    }
+  }
+}
+
+# ==============================================================================
+# PROVIDERS
+# ==============================================================================
+
 provider "azurerm" {
   features {
     key_vault {
@@ -8,11 +27,18 @@ provider "azurerm" {
     }
   }
 
-  # This allows GitHub Actions to login without a password/secret
+  # GitHub Actions OIDC
   use_oidc = true
 }
 
-# This retrieves the identity of the GitHub runner/Terraform process
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_admin_config[0].host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].cluster_ca_certificate)
+}
+
+# Identity of the GitHub Actions runner
 data "azurerm_client_config" "current" {}
 
 # ==============================================================================
@@ -40,39 +66,14 @@ resource "azurerm_storage_account" "store" {
   account_replication_type = "LRS"
 }
 
-resource "azurerm_key_vault" "vault" {
-  name                        = "firevault-secrets"
-  location                    = azurerm_resource_group.data_rg.location
-  resource_group_name         = azurerm_resource_group.data_rg.name
-  enabled_for_disk_encryption = true
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = true 
-  sku_name                    = "standard"
-
-  # Admin Access: Grants the GitHub Action runner full secret permissions
-  access_policy {
-    tenant_id          = data.azurerm_client_config.current.tenant_id
-    object_id          = data.azurerm_client_config.current.object_id
-    secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
-  }
-
-  # App Access: Grants the AKS Identity permission to read secrets
-  access_policy {
-    tenant_id          = data.azurerm_client_config.current.tenant_id
-    object_id          = azurerm_user_assigned_identity.app_identity.principal_id
-    secret_permissions = ["Get", "List"]
-  }
-}
-
-# ==============================================================================
-# 2. AKS INFRASTRUCTURE
-# ==============================================================================
-
 resource "azurerm_resource_group" "aks_rg" {
   name     = "aks-resource-group"
   location = "westeurope"
 }
+
+# ==============================================================================
+# 2. AKS & IDENTITIES
+# ==============================================================================
 
 resource "azurerm_user_assigned_identity" "app_identity" {
   name                = "firevault-app-identity"
@@ -105,25 +106,45 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 }
 
-provider "kubernetes" {
-  host                   = azurerm_kubernetes_cluster.aks.kube_config.0.host
-  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate)
-  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_key)
-  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate)
+# ==============================================================================
+# 3. KEY VAULT
+# ==============================================================================
+
+resource "azurerm_key_vault" "vault" {
+  name                        = "firevault-secrets"
+  location                    = azurerm_resource_group.data_rg.location
+  resource_group_name         = azurerm_resource_group.data_rg.name
+  tenant_id                   = data.azurerm_client_config.current.tenant_id
+  sku_name                    = "standard"
+  soft_delete_retention_days  = 7
+  purge_protection_enabled    = true
+  enabled_for_disk_encryption = true
+
+  # GitHub Actions admin access
+  access_policy {
+    tenant_id          = data.azurerm_client_config.current.tenant_id
+    object_id          = data.azurerm_client_config.current.object_id
+    secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
+  }
+
+  # AKS workload access
+  access_policy {
+    tenant_id          = data.azurerm_client_config.current.tenant_id
+    object_id          = azurerm_user_assigned_identity.app_identity.principal_id
+    secret_permissions = ["Get", "List"]
+  }
 }
 
 # ==============================================================================
-# 3. ROLE ASSIGNMENTS
+# 4. ROLE ASSIGNMENTS
 # ==============================================================================
 
-# Allows the AKS Cluster to pull images from the ACR
 resource "azurerm_role_assignment" "aks_acr_pull" {
   scope                = azurerm_container_registry.acr.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_kubernetes_cluster.aks.kubelet_identity[0].object_id
 }
 
-# Allows the GitHub Action Runner to manage the AKS Cluster
 resource "azurerm_role_assignment" "github_actions_aks_user" {
   scope                = azurerm_kubernetes_cluster.aks.id
   role_definition_name = "Azure Kubernetes Service Cluster User Role"
@@ -131,7 +152,32 @@ resource "azurerm_role_assignment" "github_actions_aks_user" {
 }
 
 # ==============================================================================
-# 4. OUTPUTS
+# 5. KUBERNETES SECRET (FROM KEY VAULT)
+# ==============================================================================
+
+data "azurerm_key_vault_secret" "grafana_password" {
+  name         = "grafana-cloud-password"
+  key_vault_id = azurerm_key_vault.vault.id
+}
+
+resource "kubernetes_secret_v1" "firevault_k8s_secret" {
+  metadata {
+    name      = "firevault-k8s-secret"
+    namespace = "default"
+  }
+
+  data = {
+    DESTINATIONS_PROMETHEUS_PASSWORD = data.azurerm_key_vault_secret.grafana_password.value
+    DESTINATIONS_LOKI_PASSWORD       = data.azurerm_key_vault_secret.grafana_password.value
+    DESTINATIONS_OTLP_PASSWORD       = data.azurerm_key_vault_secret.grafana_password.value
+    FLEETMANAGEMENT_PASSWORD         = data.azurerm_key_vault_secret.grafana_password.value
+  }
+
+  type = "Opaque"
+}
+
+# ==============================================================================
+# 6. OUTPUTS
 # ==============================================================================
 
 output "get_credentials_command" {
@@ -140,11 +186,4 @@ output "get_credentials_command" {
 
 output "app_identity_client_id" {
   value = azurerm_user_assigned_identity.app_identity.client_id
-}
-
-data "kubernetes_secret_v1" "firevault_k8s_secret" {
-  metadata {
-    name      = "firevault-k8s-secret"
-    namespace = var.namespace
-  }
 }
