@@ -6,6 +6,7 @@ on:
       - main
     # The pipeline will ONLY run if changes occur in these locations:
     paths:
+      - '.github/workflows/terraform.yml'  # This workflow file
       - 'terraform/**'          # Any file in the terraform directory
       - 'kubernetes/**'         # Any manifest in your k8s directory
       - '**.tf'                 # Any terraform file in the root
