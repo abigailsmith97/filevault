@@ -19,10 +19,6 @@ variable "destinations_prometheus_username" {
   default = "2896915"
 }
 
-variable "destinations_prometheus_password" {
-  type = string
-}
-
 variable "destinations_loki_url" {
   type    = string
   default = "https://logs-prod-035.grafana.net./loki/api/v1/push"
@@ -31,10 +27,6 @@ variable "destinations_loki_url" {
 variable "destinations_loki_username" {
   type    = string
   default = "1444134"
-}
-
-variable "destinations_loki_password" {
-  type = string
 }
 
 variable "destinations_otlp_url" {
@@ -47,10 +39,6 @@ variable "destinations_otlp_username" {
   default = "1486341"
 }
 
-variable "destinations_otlp_password" {
-  type = string
-}
-
 variable "fleetmanagement_url" {
   type    = string
   default = "https://fleet-management-prod-023.grafana.net"
@@ -59,8 +47,4 @@ variable "fleetmanagement_url" {
 variable "fleetmanagement_username" {
   type    = string
   default = "1486341"
-}
-
-variable "fleetmanagement_password" {
-  type = string
 }

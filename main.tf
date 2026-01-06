@@ -1,7 +1,7 @@
 provider "azurerm" {
   features {
     key_vault {
-      purge_soft_delete_on_destroy = true 
+      purge_soft_delete_on_destroy = true
     }
     resource_group {
       prevent_deletion_if_contains_resources = false
@@ -50,15 +50,15 @@ resource "azurerm_key_vault" "vault" {
 
   # Admin Access (You/Terraform)
   access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
+    tenant_id          = data.azurerm_client_config.current.tenant_id
+    object_id          = data.azurerm_client_config.current.object_id
     secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
   }
 
   # App Access (The Identity created below)
   access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = azurerm_user_assigned_identity.app_identity.principal_id # DIRECT REFERENCE
+    tenant_id          = data.azurerm_client_config.current.tenant_id
+    object_id          = azurerm_user_assigned_identity.app_identity.principal_id # DIRECT REFERENCE
     secret_permissions = ["Get", "List"]
   }
 }
@@ -83,9 +83,9 @@ resource "azurerm_kubernetes_cluster" "aks" {
   location            = azurerm_resource_group.aks_rg.location
   resource_group_name = azurerm_resource_group.aks_rg.name
   dns_prefix          = "firevault-dns"
-  
-  kubernetes_version  = "1.32" 
-  sku_tier            = "Free"
+
+  kubernetes_version = "1.32"
+  sku_tier           = "Free"
 
   default_node_pool {
     name       = "default"
@@ -105,10 +105,10 @@ resource "azurerm_kubernetes_cluster" "aks" {
 }
 
 provider "kubernetes" {
-  host                   = azurerm_kubernetes_cluster.aks.kube_config_raw
-  client_certificate     = azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate
-  client_key             = azurerm_kubernetes_cluster.aks.kube_config.0.client_key
-  cluster_ca_certificate = azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate
+  host                   = azurerm_kubernetes_cluster.aks.kube_config.0.host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate)
 }
 
 # ==============================================================================
@@ -139,7 +139,7 @@ output "app_identity_client_id" {
   value = azurerm_user_assigned_identity.app_identity.client_id
 }
 
-data "kubernetes_secret" "firevault_k8s_secret" {
+data "kubernetes_secret_v1" "firevault_k8s_secret" {
   metadata {
     name = "firevault-k8s-secret"
   }
