@@ -10,16 +10,8 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = ">= 2.30.0"
     }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "2.17.0"
-    }
   }
 }
-
-# ==============================================================================
-# PROVIDERS
-# ==============================================================================
 
 provider "azurerm" {
   features {
@@ -30,25 +22,8 @@ provider "azurerm" {
       prevent_deletion_if_contains_resources = false
     }
   }
-  # GitHub Actions OIDC
   subscription_id = "48740eb3-ae90-47df-9a7b-b7833ad9314e"
-  use_oidc = true
-}
-
-provider "kubernetes" {
-  host                   = azurerm_kubernetes_cluster.aks.kube_admin_config[0].host
-  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_certificate)
-  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_key)
-  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].cluster_ca_certificate)
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = azurerm_kubernetes_cluster.aks.kube_admin_config[0].host
-    client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_certificate)
-    client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_key)
-    cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].cluster_ca_certificate)
-  }
+  use_oidc        = true
 }
 
 # ==============================================================================
@@ -58,11 +33,16 @@ provider "helm" {
 data "azurerm_client_config" "current" {}
 
 # ==============================================================================
-# 1. DATA INFRASTRUCTURE
+# 1. RESOURCE GROUPS AND INFRA
 # ==============================================================================
 
 resource "azurerm_resource_group" "data_rg" {
   name     = "firevault"
+  location = "westeurope"
+}
+
+resource "azurerm_resource_group" "aks_rg" {
+  name     = "aks-resource-group"
   location = "westeurope"
 }
 
@@ -82,13 +62,8 @@ resource "azurerm_storage_account" "store" {
   account_replication_type = "LRS"
 }
 
-resource "azurerm_resource_group" "aks_rg" {
-  name     = "aks-resource-group"
-  location = "westeurope"
-}
-
 # ==============================================================================
-# 2. AKS & IDENTITIES
+# 2. AKS AND IDENTITY
 # ==============================================================================
 
 resource "azurerm_user_assigned_identity" "app_identity" {
@@ -102,9 +77,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
   location            = azurerm_resource_group.aks_rg.location
   resource_group_name = azurerm_resource_group.aks_rg.name
   dns_prefix          = "firevault-dns"
-
-  kubernetes_version = "1.32"
-  sku_tier           = "Free"
+  kubernetes_version  = "1.32"
+  sku_tier            = "Free"
 
   default_node_pool {
     name       = "default"
@@ -136,14 +110,12 @@ resource "azurerm_key_vault" "vault" {
   purge_protection_enabled    = true
   enabled_for_disk_encryption = true
 
-  # GitHub Actions admin access
   access_policy {
     tenant_id          = data.azurerm_client_config.current.tenant_id
     object_id          = data.azurerm_client_config.current.object_id
     secret_permissions = ["Get", "List", "Set", "Delete", "Recover", "Backup", "Restore", "Purge"]
   }
 
-  # AKS workload access
   access_policy {
     tenant_id          = data.azurerm_client_config.current.tenant_id
     object_id          = azurerm_user_assigned_identity.app_identity.principal_id
@@ -174,6 +146,13 @@ resource "azurerm_role_assignment" "github_actions_aks_user" {
 data "azurerm_key_vault_secret" "grafana_password" {
   name         = "grafana-cloud-password"
   key_vault_id = azurerm_key_vault.vault.id
+}
+
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_admin_config[0].host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].cluster_ca_certificate)
 }
 
 resource "kubernetes_secret_v1" "firevault_k8s_secret" {

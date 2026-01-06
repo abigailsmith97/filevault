@@ -1,4 +1,21 @@
-resource "helm_release" "grafana-k8s-monitoring" {
+# ==============================================================================
+# PROVIDER FOR HELM
+# ==============================================================================
+
+provider "helm" {
+  kubernetes {
+    host                   = azurerm_kubernetes_cluster.aks.kube_admin_config[0].host
+    client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_certificate)
+    client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].client_key)
+    cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_admin_config[0].cluster_ca_certificate)
+  }
+}
+
+# ==============================================================================
+# HELM RELEASE: GRAFANA K8S MONITORING
+# ==============================================================================
+
+resource "helm_release" "grafana_k8s_monitoring" {
   name             = "grafana-k8s-monitoring"
   repository       = "https://grafana.github.io/helm-charts"
   chart            = "k8s-monitoring"
@@ -9,11 +26,13 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   values = [file("${path.module}/values.yaml")]
 
+  # Cluster metadata
   set {
     name  = "cluster.name"
     value = var.cluster_name
   }
 
+  # Prometheus destination
   set {
     name  = "destinations[0].url"
     value = var.destinations_prometheus_url
@@ -29,6 +48,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
     value = kubernetes_secret_v1.firevault_k8s_secret.data["DESTINATIONS_PROMETHEUS_PASSWORD"]
   }
 
+  # Loki destination
   set {
     name  = "destinations[1].url"
     value = var.destinations_loki_url
@@ -44,6 +64,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
     value = kubernetes_secret_v1.firevault_k8s_secret.data["DESTINATIONS_LOKI_PASSWORD"]
   }
 
+  # OTLP destination
   set {
     name  = "destinations[2].url"
     value = var.destinations_otlp_url
@@ -59,6 +80,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
     value = kubernetes_secret_v1.firevault_k8s_secret.data["DESTINATIONS_OTLP_PASSWORD"]
   }
 
+  # Opencost metrics
   set {
     name  = "clusterMetrics.opencost.opencost.exporter.defaultClusterId"
     value = var.cluster_name
@@ -69,6 +91,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
     value = trimsuffix(var.destinations_prometheus_url, "/push")
   }
 
+  # Fleet management / Alloy metrics
   set {
     name  = "alloy-metrics.remoteConfig.url"
     value = var.fleetmanagement_url
