@@ -7,8 +7,11 @@ provider "azurerm" {
       prevent_deletion_if_contains_resources = false
     }
   }
-  subscription_id = "48740eb3-ae90-47df-9a7b-b7833ad9314e"
-  tenant_id       = "34cc7ab5-fd16-446f-bd35-2d04775d2de1"
+
+  subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
+  client_id       = var.client_id
+  client_secret   = var.client_secret
 }
 
 data "azurerm_client_config" "current" {}
