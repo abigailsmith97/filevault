@@ -1,32 +1,40 @@
-name: "Terraform Infrastructure"
+name: Infrastructure Deployment
 
 on:
   push:
     branches:
       - main
-  pull_request:
+    # The pipeline will ONLY run if changes occur in these locations:
+    paths:
+      - 'terraform/**'          # Any file in the terraform directory
+      - 'kubernetes/**'         # Any manifest in your k8s directory
+      - '**.tf'                 # Any terraform file in the root
+      - 'deployment.yaml'       # Your specific app manifest
+      - '!**.md'                # IGNORE changes to README or markdown files
 
 permissions:
+  id-token: write
   contents: read
-
-env:
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  
-  TF_VAR_client_id: ${{ secrets.AZURE_CLIENT_ID }}
-  TF_VAR_client_secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-  TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
 
 jobs:
   terraform:
-    name: "Terraform"
     runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_USE_OIDC: true
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -34,16 +42,9 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
-      - name: Azure login
-        uses: azure/login@v1.4.6
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
       - name: Terraform Plan
-        run: terraform plan -out=tfplan 
+        run: terraform plan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve tfplan
+        if: github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve
