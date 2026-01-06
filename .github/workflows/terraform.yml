@@ -6,12 +6,12 @@ on:
       - main
     # The pipeline will ONLY run if changes occur in these locations:
     paths:
-      - '.github/workflows/terraform.yml'  # This workflow file
-      - 'terraform/**'          # Any file in the terraform directory
-      - 'kubernetes/**'         # Any manifest in your k8s directory
-      - '**.tf'                 # Any terraform file in the root
-      - 'deployment.yaml'       # Your specific app manifest
-      - '!**.md'                # IGNORE changes to README or markdown files
+      - ".github/workflows/terraform.yml" # This workflow file
+      - "terraform/**" # Any file in the terraform directory
+      - "kubernetes/**" # Any manifest in your k8s directory
+      - "**.tf" # Any terraform file in the root
+      - "deployment.yaml" # Your specific app manifest
+      - "!**.md" # IGNORE changes to README or markdown files
 
 permissions:
   id-token: write
@@ -21,7 +21,6 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
     env:
-      env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
