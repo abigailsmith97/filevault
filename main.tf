@@ -31,6 +31,7 @@ provider "azurerm" {
     }
   }
   # GitHub Actions OIDC
+  subscription_id = "48740eb3-ae90-47df-9a7b-b7833ad9314e"
   use_oidc = true
 }
 
