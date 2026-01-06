@@ -26,7 +26,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "destinations[0].auth.password"
-    value = var.destinations_prometheus_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["DESTINATIONS_PROMETHEUS_PASSWORD"])
   }
 
   set {
@@ -41,7 +41,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "destinations[1].auth.password"
-    value = var.destinations_loki_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["DESTINATIONS_LOKI_PASSWORD"])
   }
 
   set {
@@ -56,7 +56,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "destinations[2].auth.password"
-    value = var.destinations_otlp_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["DESTINATIONS_OTLP_PASSWORD"])
   }
 
   set {
@@ -81,7 +81,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "alloy-metrics.remoteConfig.auth.password"
-    value = var.fleetmanagement_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["FLEETMANAGEMENT_PASSWORD"])
   }
 
   set {
@@ -96,7 +96,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "alloy-singleton.remoteConfig.auth.password"
-    value = var.fleetmanagement_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["FLEETMANAGEMENT_PASSWORD"])
   }
 
   set {
@@ -111,7 +111,7 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "alloy-logs.remoteConfig.auth.password"
-    value = var.fleetmanagement_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["FLEETMANAGEMENT_PASSWORD"])
   }
 
   set {
@@ -126,6 +126,6 @@ resource "helm_release" "grafana-k8s-monitoring" {
 
   set_sensitive {
     name  = "alloy-receiver.remoteConfig.auth.password"
-    value = var.fleetmanagement_password
+    value = base64decode(data.kubernetes_secret.firevault_k8s_secret.data["FLEETMANAGEMENT_PASSWORD"])
   }
 }

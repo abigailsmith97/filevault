@@ -104,6 +104,13 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 }
 
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_config_raw
+  client_certificate     = azurerm_kubernetes_cluster.aks.kube_config.0.client_certificate
+  client_key             = azurerm_kubernetes_cluster.aks.kube_config.0.client_key
+  cluster_ca_certificate = azurerm_kubernetes_cluster.aks.kube_config.0.cluster_ca_certificate
+}
+
 # ==============================================================================
 # 3. ROLE ASSIGNMENTS
 # ==============================================================================
@@ -130,4 +137,10 @@ output "get_credentials_command" {
 
 output "app_identity_client_id" {
   value = azurerm_user_assigned_identity.app_identity.client_id
+}
+
+data "kubernetes_secret" "firevault_k8s_secret" {
+  metadata {
+    name = "firevault-k8s-secret"
+  }
 }

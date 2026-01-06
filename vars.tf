@@ -20,8 +20,7 @@ variable "destinations_prometheus_username" {
 }
 
 variable "destinations_prometheus_password" {
-  type    = string
-  default = "glc_eyJvIjoiMTYzMzE2OCIsIm4iOiJzdGFjay0xNDg2MzQxLWludGVncmF0aW9uLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuIiwiayI6IjZkMGhqQTBVSUY5REtuNDBiVTZtNzQxbiIsIm0iOnsiciI6InByb2QtZ2Itc291dGgtMSJ9fQ=="
+  type = string
 }
 
 variable "destinations_loki_url" {
@@ -35,8 +34,7 @@ variable "destinations_loki_username" {
 }
 
 variable "destinations_loki_password" {
-  type    = string
-  default = "glc_eyJvIjoiMTYzMzE2OCIsIm4iOiJzdGFjay0xNDg2MzQxLWludGVncmF0aW9uLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuIiwiayI6IjZkMGhqQTBVSUY5REtuNDBiVTZtNzQxbiIsIm0iOnsiciI6InByb2QtZ2Itc291dGgtMSJ9fQ=="
+  type = string
 }
 
 variable "destinations_otlp_url" {
@@ -50,8 +48,7 @@ variable "destinations_otlp_username" {
 }
 
 variable "destinations_otlp_password" {
-  type    = string
-  default = "glc_eyJvIjoiMTYzMzE2OCIsIm4iOiJzdGFjay0xNDg2MzQxLWludGVncmF0aW9uLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuIiwiayI6IjZkMGhqQTBVSUY5REtuNDBiVTZtNzQxbiIsIm0iOnsiciI6InByb2QtZ2Itc291dGgtMSJ9fQ=="
+  type = string
 }
 
 variable "fleetmanagement_url" {
@@ -65,6 +62,5 @@ variable "fleetmanagement_username" {
 }
 
 variable "fleetmanagement_password" {
-  type    = string
-  default = "glc_eyJvIjoiMTYzMzE2OCIsIm4iOiJzdGFjay0xNDg2MzQxLWludGVncmF0aW9uLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuLWZpcmV2YXVsdC1ncmFmYW5hLXRva2VuIiwiayI6IjZkMGhqQTBVSUY5REtuNDBiVTZtNzQxbiIsIm0iOnsiciI6InByb2QtZ2Itc291dGgtMSJ9fQ=="
+  type = string
 }
